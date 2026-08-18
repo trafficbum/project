@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blue Magic Media — Project Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f1f17;
+    color: #f0f0f0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #1B3D2B;
+    border-bottom: 3px solid #C9A84C;
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 20px; color: #C9A84C; font-weight: 700; letter-spacing: 0.5px; }
+  header span { font-size: 12px; color: #aaa; }
+
+  .board {
+    display: flex;
+    gap: 18px;
+    padding: 24px 24px 40px;
+    overflow-x: auto;
+    min-height: calc(100vh - 70px);
+    align-items: flex-start;
+  }
+
+  .column {
+    background: #1a2e22;
+    border-radius: 12px;
+    min-width: 270px;
+    width: 270px;
+    flex-shrink: 0;
+    border: 1px solid #2a4535;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .col-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #2a4535;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .col-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .col-count {
+    background: #2a4535;
+    color: #C9A84C;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 2px 8px;
+    min-width: 24px;
+    text-align: center;
+  }
+
+  .col-todo .col-title    { color: #8ab4f8; }
+  .col-inprog .col-title  { color: #f6a623; }
+  .col-follow .col-title  { color: #c084fc; }
+  .col-done .col-title    { color: #4ade80; }
+  .col-material .col-title { color: #f97316; }
+
+  .col-todo    { border-top: 3px solid #8ab4f8; }
+  .col-inprog  { border-top: 3px solid #f6a623; }
+  .col-follow  { border-top: 3px solid #c084fc; }
+  .col-done    { border-top: 3px solid #4ade80; }
+  .col-material { border-top: 3px solid #f97316; }
+
+  .cards-area {
+    padding: 10px 10px 6px;
+    flex: 1;
+    min-height: 120px;
+  }
+  .cards-area.drag-over { background: #243d2c; border-radius: 8px; }
+
+  .card {
+    background: #243d2c;
+    border: 1px solid #2e5240;
+    border-radius: 8px;
+    padding: 12px 12px 10px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+  .card.dragging { opacity: 0.4; cursor: grabbing; }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f0f0f0;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    padding-right: 20px;
+  }
+  .card-note {
+    font-size: 11px;
+    color: #7a9e88;
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+  .card-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+  .tag-seo    { background: #1e3a5f; color: #8ab4f8; }
+  .tag-video  { background: #3b1f00; color: #f6a623; }
+  .tag-web    { background: #2a1f3d; color: #c084fc; }
+  .tag-lead   { background: #1a3d25; color: #4ade80; }
+  .tag-admin  { background: #3d2a1a; color: #fbbf24; }
+
+  .card-delete {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: none;
+    border: none;
+    color: #4a6a55;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .card-delete:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+  .add-btn {
+    margin: 6px 10px 12px;
+    background: none;
+    border: 1px dashed #2e5240;
+    border-radius: 8px;
+    color: #4a6a55;
+    font-size: 12px;
+    padding: 8px;
+    cursor: pointer;
+    width: calc(100% - 20px);
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .add-btn:hover { border-color: #C9A84C; color: #C9A84C; background: rgba(201,168,76,0.05); }
+
+  /* Modal */
+  .modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: #1B3D2B;
+    border: 1px solid #C9A84C;
+    border-radius: 14px;
+    padding: 24px;
+    width: 360px;
+    max-width: 95vw;
+  }
+  .modal h2 { font-size: 15px; color: #C9A84C; margin-bottom: 16px; }
+  .modal label { font-size: 11px; color: #7a9e88; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal textarea, .modal select {
+    width: 100%;
+    background: #0f1f17;
+    border: 1px solid #2e5240;
+    border-radius: 7px;
+    color: #f0f0f0;
+    font-size: 13px;
+    padding: 9px 11px;
+    outline: none;
+    font-family: inherit;
+  }
+  .modal input:focus, .modal textarea:focus, .modal select:focus { border-color: #C9A84C; }
+  .modal textarea { resize: vertical; min-height: 70px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-save {
+    flex: 1;
+    background: #C9A84C;
+    color: #0f1f17;
+    border: none;
+    border-radius: 7px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-save:hover { background: #dbb95c; }
+  .btn-cancel {
+    flex: 1;
+    background: none;
+    border: 1px solid #2e5240;
+    border-radius: 7px;
+    color: #7a9e88;
+    padding: 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-cancel:hover { border-color: #f87171; color: #f87171; }
+
+  .empty-state {
+    text-align: center;
+    color: #2e5240;
+    font-size: 12px;
+    padding: 20px 10px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#9733; Blue Magic Media — Project Board</h1>
+  <span id="date-display"></span>
+</header>
+
+<div class="board" id="board">
+  <div class="column col-todo" data-col="todo">
+    <div class="col-header">
+      <span class="col-title">To Do</span>
+      <span class="col-count" id="count-todo">0</span>
+    </div>
+    <div class="cards-area" id="area-todo"></div>
+    <button class="add-btn" onclick="openModal('todo')">+ Add Card</button>
+  </div>
+
+  <div class="column col-inprog" data-col="inprog">
+    <div class="col-header">
+      <span class="col-title">In Progress</span>
+      <span class="col-count" id="count-inprog">0</span>
+    </div>
+    <div class="cards-area" id="area-inprog"></div>
+    <button class="add-btn" onclick="openModal('inprog')">+ Add Card</button>
+  </div>
+
+  <div class="column col-follow" data-col="follow">
+    <div class="col-header">
+      <span class="col-title">Status</span>
+      <span class="col-count" id="count-follow">0</span>
+    </div>
+    <div class="cards-area" id="area-follow"></div>
+    <button class="add-btn" onclick="openModal('follow')">+ Add Card</button>
+  </div>
+
+  <div class="column col-done" data-col="done">
+    <div class="col-header">
+      <span class="col-title">Outstanding Balance</span>
+      <span class="col-count" id="count-done">0</span>
+    </div>
+    <div class="cards-area" id="area-done"></div>
+    <button class="add-btn" onclick="openModal('done')">+ Add Card</button>
+  </div>
+
+  <div class="column col-material" data-col="material">
+    <div class="col-header">
+      <span class="col-title">Material Needed</span>
+      <span class="col-count" id="count-material">0</span>
+    </div>
+    <div class="cards-area" id="area-material"></div>
+    <button class="add-btn" onclick="openModal('material')">+ Add Card</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <h2 id="modal-title">Add Card</h2>
+    <label>Project / Task Name *</label>
+    <input type="text" id="m-title" placeholder="e.g. Tony Federici — SAI Psychiatry SEO" />
+    <label>Notes (optional)</label>
+    <textarea id="m-note" placeholder="Any details, next steps, or context..."></textarea>
+    <label>Tag</label>
+    <select id="m-tag">
+      <option value="">— None —</option>
+      <option value="seo">SEO</option>
+      <option value="video">Video</option>
+      <option value="web">Web</option>
+      <option value="lead">Lead</option>
+      <option value="admin">Admin</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveCard()">Add Card</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentCol = null;
+  let dragCard = null;
+
+  const defaultCards = [
+    {
+      id: 'michael-thomas-001',
+      col: 'inprog',
+      title: 'Michael Thomas — Auto Detailing + Dealership Sites',
+      note: 'Email: autoreconditioningd@gmail.com | Phone: TBD\nBrand: Red & Black | Logo: Initials + full name\nWaiting on: logo, colors, content outline, dealership features, flyer details\nYour to-do: Send 50% deposit invoice, design business cards for both businesses',
+      tag: 'web'
+    },
+    {
+      id: 'tony-federici-001',
+      col: 'inprog',
+      title: 'Tony Federici — Dr. Ganjoo / SAI Psychiatry SEO',
+      note: 'Email: tonyfederici1964@yahoo.com | CC: sdocbob@yahoo.com\nDeposit RECEIVED — client active\nStep 1: GBP creation (in progress) | Step 2: Directory cleanup | Step 3: Citation audit\nNote: No contact with new business owners before October 1 (contractual)\nTotal: $425 flat + optional $85/mo monitoring | Balance: $212.50 due on completion',
+      tag: 'seo'
+    }
+  ];
+
+  let saved = localStorage.getItem('bmm_cards');
+  let cards;
+  if (saved) {
+    cards = JSON.parse(saved);
+    // Merge in default cards if not already present
+    defaultCards.forEach(dc => {
+      if (!cards.find(c => c.id === dc.id)) cards.push(dc);
+    });
+  } else {
+    cards = [...defaultCards];
+  }
+  localStorage.setItem('bmm_cards', JSON.stringify(cards));
+
+  document.getElementById('date-display').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  function save() { localStorage.setItem('bmm_cards', JSON.stringify(cards)); }
+
+  function render() {
+    ['todo','inprog','follow','done','material'].forEach(col => {
+      const area = document.getElementById('area-' + col);
+      const colCards = cards.filter(c => c.col === col);
+      document.getElementById('count-' + col).textContent = colCards.length;
+      area.innerHTML = '';
+      if (colCards.length === 0) {
+        area.innerHTML = '<div class="empty-state">Drop cards here</div>';
+      }
+      colCards.forEach(card => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.draggable = true;
+        el.dataset.id = card.id;
+        el.innerHTML = `
+          <button class="card-delete" onclick="deleteCard('${card.id}')" title="Delete">&#x2715;</button>
+          <div class="card-title">${esc(card.title)}</div>
+          ${card.note ? `<div class="card-note">${esc(card.note)}</div>` : ''}
+          ${card.tag ? `<span class="card-tag tag-${card.tag}">${card.tag.toUpperCase()}</span>` : ''}
+        `;
+        el.addEventListener('dragstart', e => { dragCard = card.id; el.classList.add('dragging'); });
+        el.addEventListener('dragend', e => { el.classList.remove('dragging'); dragCard = null; });
+        area.appendChild(el);
+      });
+
+      area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+      area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+      area.addEventListener('drop', e => {
+        e.preventDefault();
+        area.classList.remove('drag-over');
+        if (dragCard) {
+          const card = cards.find(c => c.id === dragCard);
+          if (card) { card.col = col; save(); render(); }
+        }
+      });
+    });
+  }
+
+  function esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function openModal(col) {
+    currentCol = col;
+    document.getElementById('modal-title').textContent = 'Add Card to ' + {'todo':'To Do','inprog':'In Progress','follow':'Status','done':'Outstanding Balance','material':'Material Needed'}[col];
+    document.getElementById('m-title').value = '';
+    document.getElementById('m-note').value = '';
+    document.getElementById('m-tag').value = '';
+    document.getElementById('modal-bg').classList.add('open');
+    setTimeout(() => document.getElementById('m-title').focus(), 100);
+  }
+
+  function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
+
+  function saveCard() {
+    const title = document.getElementById('m-title').value.trim();
+    if (!title) { document.getElementById('m-title').focus(); return; }
+    cards.push({
+      id: Date.now().toString(),
+      col: currentCol,
+      title,
+      note: document.getElementById('m-note').value.trim(),
+      tag: document.getElementById('m-tag').value
+    });
+    save(); render(); closeModal();
+  }
+
+  function deleteCard(id) {
+    if (confirm('Delete this card?')) { cards = cards.filter(c => c.id !== id); save(); render(); }
+  }
+
+  document.getElementById('modal-bg').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  render();
+</script>
+</body>
+</html>
